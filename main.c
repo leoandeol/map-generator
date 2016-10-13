@@ -11,13 +11,24 @@
 // POUR GEN1 : 2pow11 +1
 
 const int SIZE = 2048;
+
+const int COEFF_SCALE = 40;
+/*
 const int WIDTH = 2049;
 const int HEIGHT = 2049;
 const int H = 2;
+*/
 
+const int T_DEEP_WATER = 30;
+const int T_WATER = 130;
+const int T_GROUND = 200;
+const int T_HIGH = 220;
+
+const char* DEEP_WATER = "0 20 140";
 const char* WATER = "0 20 255";
 const char* GROUND = "0 100 0";
 const char* HIGH = "128 128 128";
+const char* HIGHER = "180 180 180";
 
 int _rand(int min, int max){
 	if(min == 0 && max == 0) { return 0; }
@@ -26,19 +37,20 @@ int _rand(int min, int max){
 	return i;
 }
 
+/*
 void gen1rec(int** t,int x, int y, int mx, int my, int dev)
 {
 	//printf("x=%d\ny=%d\nmx=%d\nmy=%d\n\n",x,y,mx,my);
 
-	/*      e
-	      a 3 b
-	    g 2 1 4 f
-          c 5 d
-		    h
-	
-
-			 e f g h being theoretically out of scope
-	*/
+	//      e
+	//    a 3 b
+	//  g 2 1 4 f
+    //    c 5 d
+    //	    h
+	//
+	//
+	//		 e f g h being theoretically out of scope
+	//
 	int a = t[x][y];
 	int b = t[mx][y];
 	int c = t[x][my];
@@ -99,10 +111,10 @@ int** gen1(){
 	for(int i = 0; i < WIDTH; i++)
 	{
 		tab[i] = malloc(sizeof(int)*HEIGHT);
-		/*for(int j; j < HEIGHT; j++)
-		{
-			tab[i][j]=0;
-		}*/
+		//for(int j; j < HEIGHT; j++)
+		//{
+		//	tab[i][j]=0;
+		//}
 	}
 	int half = WIDTH/2;
 	int DEVIATION = half*3;
@@ -123,14 +135,16 @@ int** gen1(){
 	return tab;
 }
 
+*/
+
 int** gen2()
 {
 	int size = SIZE;
 	int extent = size;
 	int half = (size) / 2;
-	int ** points = malloc(sizeof(int*)*(size+1));
-	for(int i = 0; i < size+1; i++) { points[i] = malloc(sizeof(int)*(size+1)); }
-	int scale = half * 2;
+	int ** points = malloc(sizeof(int*)*(size));
+	for(int i = 0; i < size+1; i++) { points[i] = malloc(sizeof(int)*(size)); }
+	int scale = half * COEFF_SCALE;
 	
 	points[0][0]=half+_rand(-scale,scale);
 	points[size][0]=half+_rand(-scale,scale);
@@ -191,7 +205,7 @@ int** gen2()
 		// update values
 		size /= 2;
 		half /= 2;
-		scale = half * 2;
+		scale = half * COEFF_SCALE;
 	}
 	return points;
 }
@@ -199,25 +213,27 @@ int** gen2()
 int** convert(int** tab)
 {
 	int min = 0, max = 0;
-	int** t = malloc(sizeof(int*)*WIDTH);
+	int** t = malloc(sizeof(int*)*SIZE);
 	printf("Converting...\n");
-	for(int i = 0; i < WIDTH; i++)
+	for(int i = 0; i < SIZE; i++)
 	{
-		t[i] = malloc(sizeof(int)*HEIGHT);
-		for(int j = 0; j < HEIGHT; j++)
+		t[i] = malloc(sizeof(int)*SIZE);
+		for(int j = 0; j < SIZE; j++)
 		{
-			if(i<WIDTH-1&&j<HEIGHT-1)
+			if(i<SIZE-1&&j<SIZE-1)
 			{
 				t[i][j] = (tab[i][j] + tab[i+1][j] + tab[i][j+1] + tab[i+1][j+1])/4;
+			} else {
+				t[i][j] = tab[i][j];
 			}
 			if(t[i][j]>max){ max = t[i][j]; }
 			if(t[i][j]<min){ min = t[i][j]; }
 		}
 	}
 	printf("Minimum : %d | Maximum : %d\n",min, max);
-	for(int i = 0; i < WIDTH; i++)
+	for(int i = 0; i < SIZE; i++)
 	{
-		for(int j = 0; j < HEIGHT; j++)
+		for(int j = 0; j < SIZE; j++)
 		{
 			double k = t[i][j];
 			k = k - min;
@@ -230,15 +246,21 @@ int** convert(int** tab)
 }
 
 int main(int argc, char** argv){
-	int seed = atoi(argv[2]);
-	srand(seed);
-	FILE* out = fopen("output.pgm","w");
-	if(argc!=3)
+	FILE* out = fopen("output.ppm","w");
+	if(argc>2)
 	{
-		fprintf(stderr,"Usage : ./main MODE SEED\n");
+		fprintf(stderr,"Usage : ./main SEED\n");
 		return -1;
 	}
-	int** (*fct)();
+	if(argc==2){
+		printf("Generating according to seed %d\n",atoi(argv[2]));
+		srand(atoi(argv[1]));
+	} else {
+		unsigned int a = time(NULL);
+		printf("Generating according to random seed %d\n",a);
+		srand(a);
+	}
+	/*int** (*fct)();
 	int nb_fct = atoi(argv[1]);
 	switch(nb_fct){
 	case 1:
@@ -247,41 +269,54 @@ int main(int argc, char** argv){
 	case 2:
 		fct=&gen2;
 		break;
-	}
+	}*/
 	// FUNCTION CALL
-	int** output = (*fct)();
+	//int** output = (*fct)();
+	int** output = gen2();
 	int** conv = convert(output);
 	// WRITE HEADER
 	
-	fprintf(out,"P2\n");
-	fprintf(out,"%d",WIDTH);
+	fprintf(out,"P3\n");
+	fprintf(out,"%d",SIZE);
 	fprintf(out," ");
-	fprintf(out,"%d",HEIGHT);
+	fprintf(out,"%d",SIZE);
 	fprintf(out,"\n");
 	fprintf(out,"255\n");
 	// WRITE IMAGE
-	for(int y = 0; y < HEIGHT; y++){
-		for(int x = 0; x < WIDTH; x++){
-			/*switch((int)output[x][y]){
-			case 0:
+	for(int y = 0; y < SIZE; y++){
+		for(int x = 0; x < SIZE; x++){
+			int i = conv[x][y];
+			if(i<T_DEEP_WATER){
+				fprintf(out,DEEP_WATER);
+			}
+			else if(i<T_WATER){
 				fprintf(out,WATER);
+			} else if(i < T_GROUND){
+				fprintf(out,GROUND);
+			} else if(i < T_HIGH){
+				fprintf(out,HIGH);
+			} else {
+				fprintf(out,HIGHER);
+			}
+			/*switch(i){
+			case 0:
+				fprintf(out,DEEP_WATER);
 				break;
 			case 1:
+			case 2:
+				fprintf(out,WATER);
+				break;
+			case 3:
 				fprintf(out,GROUND);
+				break;
+			case 4:
+				fprintf(out,HIGH);
 				break;
 			default:
-				fprintf(out,HIGH);
+				fprintf(out,HIGHER);
 				break;
 			}*/
-			fprintf(out,"%d",conv[x][y]);
-			/*if(i<20){
-				fprintf(out,);
-			} else if(i < 45){
-				fprintf(out,GROUND);
-			} else {
-				fprintf(out,HIGH);
-			}*/
-			if(x<WIDTH-1)
+			if(x<SIZE-1)
 			{
 				fprintf(out," ");
 			}
