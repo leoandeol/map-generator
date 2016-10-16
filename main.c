@@ -10,7 +10,7 @@
 
 // POUR GEN1 : 2pow11 +1
 
-const int SIZE = 8192;
+const int SIZE = 2048;
 
 const int COEFF_SCALE = 40;
 /*
