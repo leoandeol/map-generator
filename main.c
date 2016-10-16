@@ -10,7 +10,7 @@
 
 // POUR GEN1 : 2pow11 +1
 
-const int SIZE = 2048;
+const int SIZE = 8192;
 
 const int COEFF_SCALE = 40;
 /*
@@ -20,7 +20,7 @@ const int H = 2;
 */
 
 const int T_DEEP_WATER = 30;
-const int T_WATER = 130;
+const int T_WATER = 170;
 const int T_GROUND = 200;
 const int T_HIGH = 220;
 
@@ -145,15 +145,23 @@ int** gen2()
 	int ** points = malloc(sizeof(int*)*(size));
 	for(int i = 0; i < size+1; i++) { points[i] = malloc(sizeof(int)*(size)); }
 	int scale = half * COEFF_SCALE;
-	
+	int firstloop=1;
+	/* full random
 	points[0][0]=half+_rand(-scale,scale);
 	points[size][0]=half+_rand(-scale,scale);
 	points[0][size]=half+_rand(-scale,scale);
 	points[size][size]=half+_rand(-scale,scale);
+	*/
+
+	points[0][0]=-(size);
+	points[size][0]=-(size);
+	points[0][size]=-(size);
+	points[size][size]=-(size);
 
 	while(size > 1)
 	{
 		// SQUARE
+		if(!firstloop){
 		for(int x = 0; x < extent; x+= size)
 		{
 			for(int y = 0; y < extent; y+=size)
@@ -162,7 +170,7 @@ int** gen2()
 				int sq_avg = (points[x][y] + points[x+size][y] + points[x][y+size] + points[x+size][y+size])/4;
 				points[x+half][y+half] = sq_avg + _rand(-scale,scale);
 			}
-		}
+		}} else { firstloop=0; points[half][half] =size;}
 		//DIAMOND
 		for(int x = 0; x < extent; x+= size)
 		{
@@ -220,12 +228,12 @@ int** convert(int** tab)
 		t[i] = malloc(sizeof(int)*SIZE);
 		for(int j = 0; j < SIZE; j++)
 		{
-			if(i<SIZE-1&&j<SIZE-1)
+			/*if(i<SIZE-1&&j<SIZE-1)
 			{
 				t[i][j] = (tab[i][j] + tab[i+1][j] + tab[i][j+1] + tab[i+1][j+1])/4;
-			} else {
+			} else {*/
 				t[i][j] = tab[i][j];
-			}
+			//}
 			if(t[i][j]>max){ max = t[i][j]; }
 			if(t[i][j]<min){ min = t[i][j]; }
 		}
@@ -253,7 +261,7 @@ int main(int argc, char** argv){
 		return -1;
 	}
 	if(argc==2){
-		printf("Generating according to seed %d\n",atoi(argv[2]));
+		printf("Generating according to seed %d\n",atoi(argv[1]));
 		srand(atoi(argv[1]));
 	} else {
 		unsigned int a = time(NULL);
@@ -286,7 +294,7 @@ int main(int argc, char** argv){
 	for(int y = 0; y < SIZE; y++){
 		for(int x = 0; x < SIZE; x++){
 			int i = conv[x][y];
-			if(i<T_DEEP_WATER){
+			/*if(i<T_DEEP_WATER){
 				fprintf(out,DEEP_WATER);
 			}
 			else if(i<T_WATER){
@@ -297,6 +305,14 @@ int main(int argc, char** argv){
 				fprintf(out,HIGH);
 			} else {
 				fprintf(out,HIGHER);
+			}*/
+			if(i<T_WATER){
+				i=50+(i/2);
+				fprintf(out,"0 0 %d",i);
+			}
+			else {
+				i=170-(i/2);
+				fprintf(out,"%d %d %d",i/2,i,i/3);
 			}
 			/*switch(i){
 			case 0:
