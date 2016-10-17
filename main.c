@@ -23,6 +23,7 @@ const int T_DEEP_WATER = 30;
 const int T_WATER = 170;
 const int T_GROUND = 200;
 const int T_HIGH = 220;
+int T_DYN_WATER = 128;
 
 const char* DEEP_WATER = "0 20 140";
 const char* WATER = "0 20 255";
@@ -250,6 +251,27 @@ int** convert(int** tab)
 			t[i][j] = (int)k;
 		}
 	}
+
+	// let's find the value for which 2/3 of the values are lower
+	int histo[256];
+	// init the histogram
+	for(int i = 0; i < 256; i++)
+	  {
+	    histo[i]=0;
+	  }
+
+	// fill the histogram
+	for(int i = 0; i < SIZE; i++)
+	  {
+	    for(int j = 0; j < SIZE; j++)
+	      {
+		histo[t[i][j]]++;
+	      }
+	  }
+
+	
+	printf("Water height : %d & ratio = %f\n",T_DYN_WATER,((double)inf_counted/(double)counted));
+	
 	return t;
 }
 
@@ -306,7 +328,7 @@ int main(int argc, char** argv){
 			} else {
 				fprintf(out,HIGHER);
 			}*/
-			if(i<T_WATER){
+			if(i<T_DYN_WATER){
 				i=50+(i/2);
 				fprintf(out,"0 0 %d",i);
 			}
