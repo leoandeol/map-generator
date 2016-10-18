@@ -270,7 +270,7 @@ int** convert(int** tab)
 	  }
 
 	
-	printf("Water height : %d & ratio = %f\n",T_DYN_WATER,((double)inf_counted/(double)counted));
+	printf("Water height : %d\n",T_DYN_WATER);
 	
 	return t;
 }
@@ -290,28 +290,19 @@ int main(int argc, char** argv){
 		printf("Generating according to random seed %d\n",a);
 		srand(a);
 	}
-	/*int** (*fct)();
-	int nb_fct = atoi(argv[1]);
-	switch(nb_fct){
-	case 1:
-		fct=&gen1;
-		break;
-	case 2:
-		fct=&gen2;
-		break;
-	}*/
+
 	// FUNCTION CALL
-	//int** output = (*fct)();
 	int** output = gen2();
 	int** conv = convert(output);
-	// WRITE HEADER
-	
+
+	// WRITE HEADER	
 	fprintf(out,"P3\n");
 	fprintf(out,"%d",SIZE);
 	fprintf(out," ");
 	fprintf(out,"%d",SIZE);
 	fprintf(out,"\n");
 	fprintf(out,"255\n");
+
 	// WRITE IMAGE
 	for(int y = 0; y < SIZE; y++){
 		for(int x = 0; x < SIZE; x++){
@@ -336,24 +327,6 @@ int main(int argc, char** argv){
 				i=170-(i/2);
 				fprintf(out,"%d %d %d",i/2,i,i/3);
 			}
-			/*switch(i){
-			case 0:
-				fprintf(out,DEEP_WATER);
-				break;
-			case 1:
-			case 2:
-				fprintf(out,WATER);
-				break;
-			case 3:
-				fprintf(out,GROUND);
-				break;
-			case 4:
-				fprintf(out,HIGH);
-				break;
-			default:
-				fprintf(out,HIGHER);
-				break;
-			}*/
 			if(x<SIZE-1)
 			{
 				fprintf(out," ");
