@@ -5,19 +5,9 @@
 #include <unistd.h>
 #include <math.h>
 
-//const int WIDTH = 2000;
-//const int HEIGHT = 2000;
-
-// POUR GEN1 : 2pow11 +1
-
 const int SIZE = 2048;
 
 const int COEFF_SCALE = 40;
-/*
-const int WIDTH = 2049;
-const int HEIGHT = 2049;
-const int H = 2;
-*/
 
 const int T_DEEP_WATER = 30;
 const int T_WATER = 170;
@@ -38,107 +28,7 @@ int _rand(int min, int max){
 	return i;
 }
 
-/*
-void gen1rec(int** t,int x, int y, int mx, int my, int dev)
-{
-	//printf("x=%d\ny=%d\nmx=%d\nmy=%d\n\n",x,y,mx,my);
-
-	//      e
-	//    a 3 b
-	//  g 2 1 4 f
-    //    c 5 d
-    //	    h
-	//
-	//
-	//		 e f g h being theoretically out of scope
-	//
-	int a = t[x][y];
-	int b = t[mx][y];
-	int c = t[x][my];
-	int d = t[mx][my];
-
-	// halves
-
-	int hx = (mx+x)/2;
-	int hy = (my+y)/2;
-
-	// Gotta test them, 0 by default : will make the edges have a lower altitude;
-
-	int r = _rand(-dev,dev);
-	
-	int tmp = (y - ((my-y)/2));
-
-	int e = tmp>=0 ? t[hx][tmp] : r;
-
-	tmp = (x + ((mx-x)/2));
-
-	int f = tmp<WIDTH ? t[tmp][hy] : r;
-
-	tmp = (x - ((mx-x)/2));
-
-	int g = tmp>=0 ? t[tmp][hy] : r;
-
-	tmp = (y + ((my-y)/2));
-
-	int h = tmp<HEIGHT ? t[hx][tmp] : r;
-
-	// Update values
-	
-	int ce = (a + b + c + d)/4 + _rand(-dev,dev);
-
-	t[hx][hy] = ce;
-	
-	t[x][hy] = (ce + a + g + c)/4 + _rand(-dev,dev);
-
-	t[hx][y] = (a + e + b + ce)/4 + _rand(-dev,dev);
-
-	t[mx][hy] = (b + f + d + ce)/4 + _rand(-dev,dev);
-
-	t[hx][my] = (ce + c + d + h)/4 + _rand(-dev,dev);
-
-	dev *= pow(2,-H);
-	
-	if(mx-x>1)
-	{	   
-		gen1rec(t,x,y,(x+mx)/2,(y+my)/2,dev);
-		gen1rec(t,(x+mx)/2,y,mx,(y+my)/2,dev);
-		gen1rec(t,x,(y+my)/2,(x+mx)/2,my,dev);
-		gen1rec(t,(x+mx)/2,(y+my)/2,mx,my,dev); 
-	}
-}
-
-int** gen1(){
-	int** tab = malloc(sizeof(int*)*WIDTH);
-	for(int i = 0; i < WIDTH; i++)
-	{
-		tab[i] = malloc(sizeof(int)*HEIGHT);
-		//for(int j; j < HEIGHT; j++)
-		//{
-		//	tab[i][j]=0;
-		//}
-	}
-	int half = WIDTH/2;
-	int DEVIATION = half*3;
-	
-	tab[0][0]=half+_rand(-DEVIATION,DEVIATION);
-	tab[WIDTH-1][0]=half+_rand(-DEVIATION,DEVIATION);
-	tab[0][HEIGHT-1]=half+_rand(-DEVIATION,DEVIATION);
-	tab[WIDTH-1][HEIGHT-1]=half+_rand(-DEVIATION,DEVIATION);
-	// never touch corners to avoid crashes
-	gen1rec(tab,0,0,WIDTH-1,HEIGHT-1,DEVIATION);
-    for(int i = 0; i < WIDTH; i++)
-	{
-		for(int j; j < HEIGHT; j++)
-		{
-			tab[i][j]+=150;;
-		}
-	}  
-	return tab;
-}
-
-*/
-
-int** gen2()
+int** diamondsquare()
 {
 	int size = SIZE;
 	int extent = size;
@@ -229,14 +119,9 @@ int** convert(int** tab)
 		t[i] = malloc(sizeof(int)*SIZE);
 		for(int j = 0; j < SIZE; j++)
 		{
-			/*if(i<SIZE-1&&j<SIZE-1)
-			{
-				t[i][j] = (tab[i][j] + tab[i+1][j] + tab[i][j+1] + tab[i+1][j+1])/4;
-			} else {*/
-				t[i][j] = tab[i][j];
-			//}
-			if(t[i][j]>max){ max = t[i][j]; }
-			if(t[i][j]<min){ min = t[i][j]; }
+		  t[i][j] = tab[i][j];
+		  if(t[i][j]>max){ max = t[i][j]; }
+		  if(t[i][j]<min){ min = t[i][j]; }
 		}
 	}
 	printf("Minimum : %d | Maximum : %d\n",min, max);
@@ -254,6 +139,7 @@ int** convert(int** tab)
 
 	// let's find the value for which 2/3 of the values are lower
 	int histo[256];
+
 	// init the histogram
 	for(int i = 0; i < 256; i++)
 	  {
@@ -268,7 +154,18 @@ int** convert(int** tab)
 		histo[t[i][j]]++;
 	      }
 	  }
-
+	
+	int sum = 0;
+	int cap = (SIZE*SIZE*2)/3;
+	for(int i = 0; i < 256; i++)
+	  {
+	    sum+=histo[i];
+	    if(sum>cap)
+	      {
+		T_DYN_WATER=i;
+		break;
+	      }
+	  }
 	
 	printf("Water height : %d\n",T_DYN_WATER);
 	
@@ -292,7 +189,7 @@ int main(int argc, char** argv){
 	}
 
 	// FUNCTION CALL
-	int** output = gen2();
+	int** output = diamondsquare();
 	int** conv = convert(output);
 
 	// WRITE HEADER	
