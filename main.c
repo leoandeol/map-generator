@@ -23,11 +23,10 @@ const int SIZE = 513;
 const int COEFF_SCALE = 5;
 
 // Take care, increases wildly the duration if it gets too high O(2^n) probably
-const int COEFF_FREQ_MOV_NOISE = 1;
 const int RANDOM_NOISE_ADD = 5;
-const int MOV = 50;
+const int MOV = 70;
 
-const double WATER_RATIO = 0.666666;
+const double WATER_RATIO = 0.5;
 
 const int COL_RANGE = 256;
 
@@ -40,8 +39,7 @@ int** diamondsquare();
 int** convert(int**,int);
 void calculateWaterLevel(int**, int);
 int** generateLayers(int,int);
-int circularMask(int,int,double,int**,int**);
-int** shape(int**,int);
+int** shape(int**);
 
 
 
@@ -236,94 +234,53 @@ int**  generateLayers(int k, int seed)
 	printf("Normalizing map ...\n");
 	int** result = convert(layers,COL_RANGE);
 	calculateWaterLevel(result,COL_RANGE);
-	result = shape(result,seed);
+	result = shape(result);
 	return result;
 }
-
-int circularMask(int x, int y, double radius,int** noise_x,int** noise_y)
-{
-	int center = SIZE/2;
-
-	int coord_noise_x = x*COEFF_FREQ_MOV_NOISE;
-	int coord_noise_y = y*COEFF_FREQ_MOV_NOISE;
-
-	coord_noise_x %= 2*SIZE;
-	coord_noise_x = coord_noise_x >= SIZE ? (SIZE*2) - coord_noise_x : coord_noise_x;
-
-	
-	coord_noise_y %= 2*SIZE;
-	coord_noise_y = coord_noise_y >= SIZE ? (SIZE*2) - coord_noise_y : coord_noise_y;
-	
-	int i = x + noise_x[coord_noise_x][coord_noise_y] + _rand(-RANDOM_NOISE_ADD,RANDOM_NOISE_ADD);
-	int j = y + noise_y[coord_noise_x][coord_noise_y] + _rand(-RANDOM_NOISE_ADD,RANDOM_NOISE_ADD);
-	
-	i = i<0?0:i;
-	i = i>=SIZE?SIZE-1:i;
-	j = j<0?0:j;
-	j = j>=SIZE?SIZE-1:j;
-	
-	double distance = sqrt(pow(i-center,2)+pow(j-center,2));//+_rand(-radius/10,radius/10);
-	return distance<=radius?1:0;
-}
  
- int** shape(int** t, int seed)
- {
+int** shape(int** t)
+{
 	// fix the seed^
 	
 	printf("Shaping the map ...\n\n");
-	int pow_size = log(SIZE-1)/log(2);
-
-	int size = pow(2,pow_size+COEFF_FREQ_MOV_NOISE)+1;
 
 	int radius = SIZE/2.0 * 0.7;
 
 	
 	int** new = malloc(sizeof(int*)*SIZE);
-	srand(seed+1);
-	printf("Generating x noise\n");
-	int** noise_x = convert(diamondsquare(size),MOV*2);
-	srand(seed+2);
-	printf("Generating y noise\n");
-	int** noise_y = convert(diamondsquare(size),MOV*2);
 	for(int i = 0; i < SIZE; i++)
 	{
 		new[i] = malloc(sizeof(int)*SIZE);
 		for(int j = 0; j < SIZE; j++)
 		{
 			new[i][j]=t[i][j];
-			noise_x[i][j]-=MOV;
-			noise_y[i][j]-=MOV;
 		}
 	}
 	int center = SIZE/2;
-	double max_dist = sqrt(pow(center,2)+pow(center,2));
+	double max_dist = sqrt(pow(center-center,2)+pow(center,2));
 	
 	for(int i = 0; i < SIZE; i++)
 	{
 		for(int j = 0; j < SIZE; j++)
 		{
-			/*if(circularMask(i,j,radius,noise_x,noise_y)==1)
-			{
-				//new[x][y]=new[i][j];
-			}
-			else
-			{
-				int k = new[i][j];
-				//k = k>=T_DYN_WATER ? (2*T_DYN_WATER)-k-1 : k-1;
-				new[i][j] = k;
-			}*/
-			double distance = sqrt(pow(i-center,2)+pow(j-center,2));//+_rand(-radius/10,radius/10);
-			if(distance > radius)
+			double distance = sqrt(pow(i-center,2)+pow(j-center,2));
+			if(distance > radius && new[i][j]>=T_DYN_WATER)
 			{
 				double d = (max_dist-distance)/(max_dist-radius);
-				new[i][j]*=d;
+				d = d<0?0:d;
+				d=log10(1.0+(9.0*d))*0.5+0.5;
+				int k = new[i][j]*d + _rand(-3,0);
+				new[i][j] = k<T_DYN_WATER ? (2*T_DYN_WATER)-2-new[i][j] : k;
+				//if(new[i][j]>=T_DYN_WATER&&i>0&&j>0&&i<SIZE-1&&j<SIZE-1){new[i][j] = (new[i-1][j]+new[i][j-1]+new[i+1][j]+new[i][j+1]) / 4;}
+									
+				//new[i][j]=new[i][j]<T_DYN_WATER?T_DYN_WATER-new[i][j]-1:new[i][j];
 			}
 		}
 	}
 	
 	//polish is overrated we want small islands
-	// int polish_cycles = 20;
-	/*for(int a = 0; a < polish_cycles; a++){
+	int polish_cycles = 20;
+	for(int a = 0; a < polish_cycles; a++){
 		for(int i = 2; i < SIZE-2; i++)
 		{
 			for(int j = 2; j < SIZE-2; j++)
@@ -348,13 +305,12 @@ int circularMask(int x, int y, double radius,int** noise_x,int** noise_y)
 					
 					if(count>=7)
 					{
-						new[i][j]=T_DYN_WATER-1;
+						new[i][j]=(new[i-1][j]+new[i][j-1]+new[i+1][j]+new[i][j+1])/4;
 					}
 				}
 			}
 		}
-	}*/
-	
+	}	
 	return new;
  }
 
@@ -379,7 +335,7 @@ int main(int argc, char** argv){
 	}
 
 	// FUNCTION CALL
-	int** output = generateLayers(5,seed);
+	int** output = generateLayers(3,seed);
 
 	// WRITE HEADER	
 	fprintf(out,"P3\n");
@@ -398,7 +354,7 @@ int main(int argc, char** argv){
 				fprintf(out,"0 0 %d",i);
 			}
 			else {
-				i=170-(i/2);
+				i=180-(i/2);
 				fprintf(out,"%d %d %d",i/2,i,i/3);
 			}
 			if(x<SIZE-1)
