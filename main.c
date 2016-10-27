@@ -22,15 +22,15 @@ const int SIZE = 513;
 
 const int COEFF_SCALE = 5;
 
-// Take care, increases wildly the duration if it gets too high O(2^n) probably
-const int RANDOM_NOISE_ADD = 5;
-const int MOV = 70;
-
-const double WATER_RATIO = 0.5;
+const double WATER_RATIO = 0.3;
 
 const int COL_RANGE = 256;
 
 int T_DYN_WATER = 128;
+
+const int RADIUS_RATIO = 0.7;
+const int RAND_DECR = 3;
+const int POLISH_CYCLES = 10;
 
 //PROTOS
 
@@ -230,12 +230,32 @@ int**  generateLayers(int k, int seed)
 				layers[i][j]+=t2[i][j];
 			}
 		}
+		for(int i = 0; i < SIZE; i++)
+		{
+			free(t[i]);
+			free(t2[i]);
+		}
+		free(t);
+		free(t2);
 	}
 	printf("Normalizing map ...\n");
 	int** result = convert(layers,COL_RANGE);
 	calculateWaterLevel(result,COL_RANGE);
-	result = shape(result);
-	return result;
+	int** result2 = shape(result);
+	result = convert(layers,COL_RANGE);
+	calculateWaterLevel(result,COL_RANGE);
+    result = shape(result);
+
+	// FREE layers and result
+	for(int i = 0; i < SIZE; i++)
+	{
+	    free(layers[i]);
+		free(result[i]);
+	}
+	free(layers);
+	free(result);
+	
+	return result2;
 }
  
 int** shape(int** t)
@@ -244,7 +264,7 @@ int** shape(int** t)
 	
 	printf("Shaping the map ...\n\n");
 
-	int radius = SIZE/2.0 * 0.7;
+	int radius = SIZE/2.0 * RADIUS_RATIO/1.0;
 
 	
 	int** new = malloc(sizeof(int*)*SIZE);
@@ -269,18 +289,14 @@ int** shape(int** t)
 				double d = (max_dist-distance)/(max_dist-radius);
 				d = d<0?0:d;
 				d=log10(1.0+(9.0*d))*0.5+0.5;
-				int k = new[i][j]*d + _rand(-3,0);
+				int k = new[i][j]*d + _rand(-RAND_DECR,0);
 				new[i][j] = k<T_DYN_WATER ? (2*T_DYN_WATER)-2-new[i][j] : k;
-				//if(new[i][j]>=T_DYN_WATER&&i>0&&j>0&&i<SIZE-1&&j<SIZE-1){new[i][j] = (new[i-1][j]+new[i][j-1]+new[i+1][j]+new[i][j+1]) / 4;}
-									
-				//new[i][j]=new[i][j]<T_DYN_WATER?T_DYN_WATER-new[i][j]-1:new[i][j];
 			}
 		}
 	}
 	
 	//polish is overrated we want small islands
-	int polish_cycles = 20;
-	for(int a = 0; a < polish_cycles; a++){
+	for(int a = 0; a < POLISH_CYCLES; a++){
 		for(int i = 2; i < SIZE-2; i++)
 		{
 			for(int j = 2; j < SIZE-2; j++)
