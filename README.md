@@ -1,5 +1,5 @@
 Written by *Léo Andéol* [site](http://altruth.com)
-**copyleft**, feel free to use, copy, modify, redistribute it.
+**GNU GPL**, feel free to use, copy, modify, redistribute it according to the license.
 
 ##Compilation##
 * For linux x64 Users, a binary is already available, the "main". Else, you can rebuild it easily (on Linux 32/64) by running ./build.sh (you might have to chmod +x build.sh to make it runnable).
