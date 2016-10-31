@@ -16,13 +16,11 @@
 #define KCYN  "\x1B[36m"
 #define KWHT  "\x1B[37m"
 
-
-
 const int SIZE = 513;
 
 const int COEFF_SCALE = 5;
 
-const double WATER_RATIO = 0.3;
+const double WATER_RATIO = 0.7;
 
 const int COL_RANGE = 256;
 
@@ -30,16 +28,47 @@ int T_DYN_WATER = 128;
 
 const int RADIUS_RATIO = 0.7;
 const int RAND_DECR = 3;
-const int POLISH_CYCLES = 10;
+const int POLISH_CYCLES = 3;
+
+//const unsigned int ZERO_DEG_IN_KELVIN = 273;
+const int DEFAULT_LOWEST_TEMPERATURE_DEGREE = -30;
+const int DEFAULT_HIGHEST_TEMPERATURE_DEGREE = 30;
 
 //PROTOS
 
+typedef enum {
+	TUNDRA,
+	GRASSLAND,
+	DESERT,
+	SAVANNA,
+	TROPICAL_THORN_SCRUB_AND_WOODLAND,
+	BOREAL_FOREST,
+	TEMPERATE_FOREST,
+	TROPICAL_SEASONAL_FOREST,
+	TEMPERATE_RAINFOREST,
+	TROPICAL_RAINFOREST
+} Biome;
+
+typedef struct {
+	// temperatures in celsius
+	short ground_temperature; // distance to equator
+	short surface_temperature; // taking in account altitute
+	short elevation; // according to the noise map
+	short precipitations;
+	//short humidity; // between 0 and 100
+	Biome biome;
+} Tile;
+
 int _rand(int,int);
-int** diamondsquare();
-int** convert(int**,int);
-void calculateWaterLevel(int**, int);
-int** generateLayers(int,int);
-int** shape(int**);
+Tile** diamondsquare(int);
+void convert(Tile**,int);
+void calculateWaterLevel(Tile**, int);
+Tile** generateLayers(int,int);
+void shape(Tile**);//outddated
+void calculateGroundTemperature(Tile**);
+void calculatePrecipitations(Tile**);
+void calculateSurfaceTemperature(Tile**);
+void calculateBiome(Tile**);
 
 
 
@@ -50,21 +79,19 @@ int _rand(int min, int max){
 	return i;
 }
 
-// TODO add free
-
-int** diamondsquare(int tot_size)
+Tile** diamondsquare(int tot_size)
 {
 	int size = tot_size-1;
 	int extent = size;
 	int half = (tot_size) / 2;
-	int ** points = malloc(sizeof(int*)*(tot_size));
-	for(int i = 0; i < tot_size; i++) { points[i] = malloc(sizeof(int)*(tot_size)); }
+    Tile** points = malloc(sizeof(Tile*)*(tot_size));
+	for(int i = 0; i < tot_size; i++) { points[i] = malloc(sizeof(Tile)*(tot_size)); }
 	int scale = half * COEFF_SCALE;
 
-	points[0][0]=0;
-	points[size][0]=0;
-	points[0][size]=0;
-	points[size][size]=0;
+	points[0][0].elevation=0;
+	points[size][0].elevation=0;
+	points[0][size].elevation=0;
+	points[size][size].elevation=0;
 
 	while(size > 1)
     {
@@ -74,8 +101,8 @@ int** diamondsquare(int tot_size)
 			for(int y = 0; y < extent; y+=size)
 			{
 				//printf("%d %d %d %d\n",x,y,extent,size);
-				int sq_avg = (points[x][y] + points[x+size][y] + points[x][y+size] + points[x+size][y+size])/4;
-				points[x+half][y+half] = sq_avg + _rand(-scale,scale);
+				int sq_avg = (points[x][y].elevation + points[x+size][y].elevation + points[x][y+size].elevation + points[x+size][y+size].elevation)/4;
+				points[x+half][y+half].elevation = sq_avg + _rand(-scale,scale*2);
 			}
 		}
 		//DIAMOND
@@ -86,35 +113,35 @@ int** diamondsquare(int tot_size)
 				int avg;
 				// the top point of the diamond
 				if(y > 0){
-					avg = (points[x][y] + points[x+size][y] + points[x+half][y+half] + points[x+half][y-half]) / 4;
+					avg = (points[x][y].elevation + points[x+size][y].elevation + points[x+half][y+half].elevation + points[x+half][y-half].elevation) / 4;
 				}else{
-					avg = (points[x][y] + points[x+size][y] + points[x+half][y+half]) / 3;
+					avg = (points[x][y].elevation + points[x+size][y].elevation + points[x+half][y+half].elevation) / 3;
 				}
-				points[x+half][y] = avg + _rand(-scale, scale);
+				points[x+half][y].elevation = avg + _rand(-scale, scale*2);
  
 				// the bottom point of the diamond
 				if(y < extent - size){
-					avg = (points[x+size][y+size] + points[x+half][y+half] + points[x+size][y+size] + points[x+half][y+size+half]) / 4;
+					avg = (points[x+size][y+size].elevation + points[x+half][y+half].elevation + points[x+size][y+size].elevation + points[x+half][y+size+half].elevation) / 4;
 				}else{
-					avg = (points[x+size][y+size] + points[x+half][y+half] + points[x+size][y+size]) / 3;
+					avg = (points[x+size][y+size].elevation + points[x+half][y+half].elevation + points[x+size][y+size].elevation) / 3;
 				}
-				points[x+half][y+size] = avg + _rand(-scale, scale);
+				points[x+half][y+size].elevation = avg + _rand(-scale, scale*2);
  
 				// the left point of the diamond
 				if(x > 0){
-					avg = (points[x][y] + points[x+half][y+half] + points[x][y+size] + points[x-half][y+half]) / 4;
+					avg = (points[x][y].elevation + points[x+half][y+half].elevation + points[x][y+size].elevation + points[x-half][y+half].elevation) / 4;
 				}else{
-					avg = (points[x][y] + points[x+half][y+half] + points[x][y+size]) / 3;
+					avg = (points[x][y].elevation + points[x+half][y+half].elevation + points[x][y+size].elevation) / 3;
 				}
-				points[x][y+half] = avg + _rand(-scale, scale);
+				points[x][y+half].elevation = avg + _rand(-scale, scale*2);
  
 				//the right point of the diamond
 				if(x < extent - size){
-					avg = (points[x+size][y+size] + points[x+half][y+half] + points[x+size][y+size] + points[x+size+half][y+half]) / 4;
+					avg = (points[x+size][y+size].elevation + points[x+half][y+half].elevation + points[x+size][y+size].elevation + points[x+size+half][y+half].elevation) / 4;
 				}else{
-					avg = (points[x+size][y+size] + points[x+half][y+half] + points[x+size][y+size]) / 3;
+					avg = (points[x+size][y+size].elevation + points[x+half][y+half].elevation + points[x+size][y+size].elevation) / 3;
 				}
-				points[x+size][y+half] = avg + _rand(-scale, scale);
+				points[x+size][y+half].elevation = avg + _rand(-scale, scale*2);
 			}
 		}
 		// update values
@@ -125,19 +152,16 @@ int** diamondsquare(int tot_size)
 	return points;
 }
 
-int** convert(int** tab, int length)
+void convert(Tile** tab, int length)
 {
 	int min = 0, max = 0;
-	int** t = malloc(sizeof(int*)*SIZE);
 	printf("Converting array to [ 0 ; %d [ ...\n",length);
 	for(int i = 0; i < SIZE; i++)
     {
-		t[i] = malloc(sizeof(int)*SIZE);
 		for(int j = 0; j < SIZE; j++)
 		{
-			t[i][j] = tab[i][j];
-			if(t[i][j]>max){ max = t[i][j]; }
-			if(t[i][j]<min){ min = t[i][j]; }
+			if(tab[i][j].elevation>max){ max = tab[i][j].elevation; }
+			if(tab[i][j].elevation<min){ min = tab[i][j].elevation; }
 		}
     }
 	printf("BEFORE : Minimum : %d | Maximum : %d\n",min, max);
@@ -145,11 +169,11 @@ int** convert(int** tab, int length)
     {
 		for(int j = 0; j < SIZE; j++)
 		{
-			double k = t[i][j];
+			double k = tab[i][j].elevation;
 			k = k - min;
 			k = (k)/(max-min);
 			k = k * (length-1);
-			t[i][j] = (int)k;
+			tab[i][j].elevation = (int)k;
 		}
     }
 	min = 0;
@@ -158,15 +182,14 @@ int** convert(int** tab, int length)
     {
 		for(int j = 0; j < SIZE; j++)
 		{
-			if(t[i][j]>max){ max = t[i][j]; }
-			if(t[i][j]<min){ min = t[i][j]; }
+			if(tab[i][j].elevation>max){ max = tab[i][j].elevation; }
+			if(tab[i][j].elevation<min){ min = tab[i][j].elevation; }
 		}
     }
 	printf("AFTER : Minimum : %d | Maximum : %d\n\n",min, max);
-	return t;
 }
 
-void calculateWaterLevel(int** t, int length)
+void calculateWaterLevel(Tile** t, int length)
 {
 	printf("Calculating the water level ...\n");
 
@@ -184,7 +207,7 @@ void calculateWaterLevel(int** t, int length)
     {
 		for(int j = 0; j < SIZE; j++)
 		{
-			histo[t[i][j]]++;
+			histo[t[i][j].elevation]++;
 		}
     }
 	
@@ -203,15 +226,15 @@ void calculateWaterLevel(int** t, int length)
 	printf("Water height : %d\n\n",T_DYN_WATER);
 }
 
-int**  generateLayers(int k, int seed)
+Tile**  generateLayers(int k, int seed)
 {
-	int** layers = malloc(sizeof(int*)*SIZE);
+	Tile** layers = malloc(sizeof(Tile*)*SIZE);
 	for(int i = 0; i < SIZE; i++)
 	{
-		layers[i] = malloc(sizeof(int)*SIZE);
+		layers[i] = malloc(sizeof(Tile)*SIZE);
 		for(int j = 0; j < SIZE; j++)
 		{
-			layers[i][j] = 0;
+			layers[i][j].elevation = 0;
 		}
 	}
 	srand(seed);
@@ -221,114 +244,119 @@ int**  generateLayers(int k, int seed)
     {
 		printf("Generating layer %d ...\n",a+1);
 		//srand((1+a)*seed);
-		int** t = diamondsquare(SIZE);
-		int** t2 = convert(t,COL_RANGE/(a+1.0));
+		Tile** t = diamondsquare(SIZE);
+		convert(t,COL_RANGE/(a+1.0));
 		for(int i = 0; i < SIZE; i++)
 		{
 			for(int j = 0; j < SIZE; j++)
 			{
-				layers[i][j]+=t2[i][j];
+				layers[i][j].elevation+=t[i][j].elevation;
 			}
 		}
 		for(int i = 0; i < SIZE; i++)
 		{
 			free(t[i]);
-			free(t2[i]);
 		}
 		free(t);
-		free(t2);
 	}
 	printf("Normalizing map ...\n");
-	int** result = convert(layers,COL_RANGE);
-	calculateWaterLevel(result,COL_RANGE);
-	int** result2 = shape(result);
-	result = convert(layers,COL_RANGE);
-	calculateWaterLevel(result,COL_RANGE);
-    result = shape(result);
-
-	// FREE layers and result
-	for(int i = 0; i < SIZE; i++)
-	{
-	    free(layers[i]);
-		free(result[i]);
-	}
-	free(layers);
-	free(result);
+	convert(layers,COL_RANGE);
+	calculateWaterLevel(layers,COL_RANGE);
+	shape(layers);
 	
-	return result2;
+	return layers;
 }
  
-int** shape(int** t)
+void shape(Tile** new)
 {
 	// fix the seed^
 	
 	printf("Shaping the map ...\n\n");
 
-	int radius = SIZE/2.0 * RADIUS_RATIO/1.0;
-
 	
-	int** new = malloc(sizeof(int*)*SIZE);
+	/*int** new = malloc(sizeof(Tile*)*SIZE);
 	for(int i = 0; i < SIZE; i++)
 	{
-		new[i] = malloc(sizeof(int)*SIZE);
+		new[i] = malloc(sizeof(Tile)*SIZE);
 		for(int j = 0; j < SIZE; j++)
 		{
 			new[i][j]=t[i][j];
 		}
-	}
-	int center = SIZE/2;
-	double max_dist = sqrt(pow(center-center,2)+pow(center,2));
-	
-	for(int i = 0; i < SIZE; i++)
-	{
-		for(int j = 0; j < SIZE; j++)
-		{
-			double distance = sqrt(pow(i-center,2)+pow(j-center,2));
-			if(distance > radius && new[i][j]>=T_DYN_WATER)
-			{
-				double d = (max_dist-distance)/(max_dist-radius);
-				d = d<0?0:d;
-				d=log10(1.0+(9.0*d))*0.5+0.5;
-				int k = new[i][j]*d + _rand(-RAND_DECR,0);
-				new[i][j] = k<T_DYN_WATER ? (2*T_DYN_WATER)-2-new[i][j] : k;
-			}
-		}
-	}
+	}*/
 	
 	//polish is overrated we want small islands
 	for(int a = 0; a < POLISH_CYCLES; a++){
-		for(int i = 2; i < SIZE-2; i++)
+		for(int i = 1; i < SIZE-1; i++)
 		{
-			for(int j = 2; j < SIZE-2; j++)
+			for(int j = 1; j < SIZE-1; j++)
 			{
-				if(new[i][j]>=T_DYN_WATER)
+				if(new[i][j].elevation>=T_DYN_WATER)
 				{
 					int count = 0;
-					if(new[i-1][j]<T_DYN_WATER){count++;}
-					if(new[i+1][j]<T_DYN_WATER){count++;}
-					if(new[i][j-1]<T_DYN_WATER){count++;}
-					if(new[i][j+1]<T_DYN_WATER){count++;}
+					if(new[i-1][j].elevation<T_DYN_WATER){count++;}
+					if(new[i+1][j].elevation<T_DYN_WATER){count++;}
+					if(new[i][j-1].elevation<T_DYN_WATER){count++;}
+					if(new[i][j+1].elevation<T_DYN_WATER){count++;}
 					
-					if(new[i-1][j-1]<T_DYN_WATER){count++;}
-					if(new[i+1][j-1]<T_DYN_WATER){count++;}
-					if(new[i-1][j+1]<T_DYN_WATER){count++;}
-					if(new[i+1][j+1]<T_DYN_WATER){count++;}
-					
-					if(new[i-2][j]<T_DYN_WATER){count++;}
-					if(new[i+2][j]<T_DYN_WATER){count++;}
-					if(new[i][j-2]<T_DYN_WATER){count++;}
-					if(new[i][j+2]<T_DYN_WATER){count++;}
-					
-					if(count>=7)
+					if(count>=3)
 					{
-						new[i][j]=(new[i-1][j]+new[i][j-1]+new[i+1][j]+new[i][j+1])/4;
+						new[i][j].elevation=(new[i-1][j].elevation+new[i][j-1].elevation+new[i+1][j].elevation+new[i][j+1].elevation)/4;
+					}
+				}
+				else if(new[i][j].elevation<T_DYN_WATER)
+				{
+					int count = 0;
+					if(new[i-1][j].elevation>=T_DYN_WATER){count++;}
+					if(new[i+1][j].elevation>=T_DYN_WATER){count++;}
+					if(new[i][j-1].elevation>=T_DYN_WATER){count++;}
+					if(new[i][j+1].elevation>=T_DYN_WATER){count++;}
+					
+					if(count>=3)
+					{
+						new[i][j].elevation=(new[i-1][j].elevation+new[i][j-1].elevation+new[i+1][j].elevation+new[i][j+1].elevation)/4;
 					}
 				}
 			}
 		}
 	}	
-	return new;
+	//return new;
  }
+
+void calculateGroundTemperature(Tile** t)
+{
+	int center = SIZE / 2;
+	for(int i = 0; i < SIZE; i++)
+	{
+		for(int j = 0; j < SIZE; j++)
+		{
+			short t = ((double)center/abs(j-center))*60 - 30;
+			t[i][j].ground_temperature=t;
+		}
+	}
+}
+
+
+void calculatePrecipitations(Tile**)
+{
+	
+}
+
+void calculateSurfaceTemperature(Tile**)
+{
+	for(int i = 0; i < SIZE; i++)
+	{
+		for(int j = 0; j < SIZE; j++)
+		{
+			short rel_level = t[i][j].elevation - T_DYN_WATER;
+			t[i][j].surface_temperature = ;
+		}
+	}
+}
+
+void calculateBiome(Tile**)
+{
+	
+}
 
 int main(int argc, char** argv){
 	FILE* out = fopen("output.ppm","w");
@@ -351,7 +379,7 @@ int main(int argc, char** argv){
 	}
 
 	// FUNCTION CALL
-	int** output = generateLayers(3,seed);
+	Tile** output = generateLayers(3,seed);
 
 	// WRITE HEADER	
 	fprintf(out,"P3\n");
@@ -364,7 +392,7 @@ int main(int argc, char** argv){
 	// WRITE IMAGE
 	for(int y = 0; y < SIZE; y++){
 		for(int x = 0; x < SIZE; x++){
-			int i = output[x][y];
+			short i = output[x][y].elevation;
 			if(i<T_DYN_WATER){
 				i=50+(i/2);
 				fprintf(out,"0 0 %d",i);
