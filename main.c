@@ -338,7 +338,7 @@ int main(int argc, char** argv){
 		return -1;
     }
 
-	printf("***********************************************************\n*** Welcome to Léo Andéol's world generation algorithm  ***\n*** Using the diamond square algorithm                  ***\n*** Website : www.altruth.com                           ***\n*** Source : www.github.com/leoandeol/TODO              ***\n***********************************************************\n\n");
+	printf("***************************************************************\n*** Welcome to Léo Andéol's world generation algorithm v0.1 ***\n*** Using the diamond square algorithm                      ***\n*** Website : www.altruth.com                               ***\n*** Source : www.github.com/leoandeol/map-generator         ***\n***************************************************************\n\n");
 
 	int seed;
 	
