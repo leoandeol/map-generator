@@ -1,3 +1,4 @@
+#Map generator v0.1#
 Written by *Léo Andéol* [site](http://altruth.com)
 **GNU GPL**, feel free to use, copy, modify, redistribute it according to the license.
 
