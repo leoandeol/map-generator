@@ -33,6 +33,7 @@ const int POLISH_CYCLES = 3;
 //const unsigned int ZERO_DEG_IN_KELVIN = 273;
 const int DEFAULT_LOWEST_TEMPERATURE_DEGREE = -30;
 const int DEFAULT_HIGHEST_TEMPERATURE_DEGREE = 30;
+const int DEGREE_CHANGE_BY_LAYER = 3;
 
 //PROTOS
 
@@ -58,6 +59,8 @@ typedef struct {
 	//short humidity; // between 0 and 100
 	Biome biome;
 } Tile;
+
+//const Biome[][] WHITTAKER_CHART;
 
 int _rand(int,int);
 Tile** diamondsquare(int);
@@ -329,31 +332,38 @@ void calculateGroundTemperature(Tile** t)
 	{
 		for(int j = 0; j < SIZE; j++)
 		{
-			short t = ((double)center/abs(j-center))*60 - 30;
-			t[i][j].ground_temperature=t;
+			short tmp = ((double)center/abs(j-center))*60 - 30;
+			t[i][j].ground_temperature=tmp;
 		}
 	}
 }
 
 
-void calculatePrecipitations(Tile**)
+void calculatePrecipitations(Tile** t)
 {
 	
 }
 
-void calculateSurfaceTemperature(Tile**)
+void calculateSurfaceTemperature(Tile** t)
 {
 	for(int i = 0; i < SIZE; i++)
 	{
 		for(int j = 0; j < SIZE; j++)
 		{
 			short rel_level = t[i][j].elevation - T_DYN_WATER;
-			t[i][j].surface_temperature = ;
+			if(rel_level>=0)
+			{
+				t[i][j].surface_temperature = t[i][j].ground_temperature - (rel_level * DEGREE_CHANGE_BY_LAYER);
+			}
+			else
+			{
+				t[i][j].surface_temperature = t[i][j].ground_temperature + (rel_level * DEGREE_CHANGE_BY_LAYER);
+			}
 		}
 	}
 }
 
-void calculateBiome(Tile**)
+void calculateBiome(Tile** t)
 {
 	
 }
