@@ -60,7 +60,13 @@ typedef struct {
 	Biome biome;
 } Tile;
 
-//const Biome[][] WHITTAKER_CHART;
+/*const Biome[][] WHITTAKER_CHART = {
+	{},
+	{},
+	{},
+	{},
+	{}
+};*/
 
 int _rand(int,int);
 Tile** diamondsquare(int);
@@ -72,7 +78,7 @@ void calculateGroundTemperature(Tile**);
 void calculatePrecipitations(Tile**);
 void calculateSurfaceTemperature(Tile**);
 void calculateBiome(Tile**);
-
+Biome chooseBiome(short,short);
 
 
 int _rand(int min, int max){
